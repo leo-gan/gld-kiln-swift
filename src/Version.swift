@@ -1,1 +1,1 @@
-public let kilnVersion = "0.1.0"
+public let kilnVersion = "0.2.0"
