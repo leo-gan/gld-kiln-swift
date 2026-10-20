@@ -18,7 +18,7 @@ Swift Package Manager, Swift 6.3. The module is `Kiln`. The generator command is
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/leo-gan/gld-kiln-swift", from: "0.1.0"),
+    .package(url: "https://github.com/leo-gan/gld-kiln-swift", from: "0.2.0"),
 ],
 targets: [
     .target(name: "App", dependencies: [
