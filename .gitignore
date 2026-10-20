@@ -16,6 +16,10 @@ DerivedData/
 # MkDocs
 site/
 
+# Python test oracle cache
+__pycache__/
+*.pyc
+
 # Editors / OS
 .idea/
 .vscode/
