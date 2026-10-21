@@ -85,14 +85,43 @@ final class RefTests: XCTestCase {
         XCTAssertEqual(try encode(.bytes, .bytes(Array("ab".utf8))), hexes["bytes"])
 
         let floats = try decode(.list(.f64), hexes["f64"] ?? [])
-        guard case .list(let items) = floats, items.count == 2,
-            case .f64(let first) = items[0], case .f64(let second) = items[1] else {
+        let pair: [Double]
+        switch floats {
+        case .f64s(let items):
+            pair = items
+        case .list(let items):
+            guard items.count == 2, case .f64(let first) = items[0], case .f64(let second) = items[1] else {
+                return XCTFail("f64 list")
+            }
+            pair = [first, second]
+        default:
             return XCTFail("f64 list")
         }
+        guard pair.count == 2 else { return XCTFail("f64 list") }
+        let first = pair[0]
+        let second = pair[1]
         XCTAssertTrue(first.sign == .minus && first == 0)
         XCTAssertTrue(second.isNaN)
         XCTAssertEqual(second.bitPattern, 0x7FF8_0000_0000_0001)
         XCTAssertEqual(try encode(.list(.f64), floats), hexes["f64"])
+
+        let f32 = Value.f32s([
+            Float(bitPattern: 0x8000_0000),
+            Float(bitPattern: 0x7FC0_0000),
+            1.5,
+        ])
+        let f32Bytes = try encode(.list(.f32), f32)
+        guard case .f32s(let back) = try decode(.list(.f32), f32Bytes) else {
+            return XCTFail("f32 list")
+        }
+        XCTAssertEqual(back[0].bitPattern, 0x8000_0000)
+        XCTAssertEqual(back[1].bitPattern, 0x7FC0_0000)
+        XCTAssertEqual(back[2].bitPattern, Float(1.5).bitPattern)
+        XCTAssertEqual(f32, .list([
+            .f32(Float(bitPattern: 0x8000_0000)),
+            .f32(Float(bitPattern: 0x7FC0_0000)),
+            .f32(1.5),
+        ]))
     }
 
     func testTrustedSkipsUTF8ButNotPastTheBuffer() throws {

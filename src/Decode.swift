@@ -137,16 +137,77 @@ struct Reader {
             index += count
             return .bytes(raw)
         }
+        if case .scalar(let kind) = element {
+            switch kind {
+            case .f32:
+                return .f32s(try readF32s(count))
+            case .f64:
+                return .f64s(try readF64s(count))
+            case .i32:
+                return .i32s(try readI32s(count))
+            case .i64, .int:
+                return .i64s(try readI64s(count))
+            default:
+                var items: [Value] = []
+                items.reserveCapacity(count)
+                for _ in 0..<count { items.append(try readScalar(kind)) }
+                return .list(items)
+            }
+        }
         var items: [Value] = []
         items.reserveCapacity(count)
-        if case .scalar(let kind) = element {
-            for _ in 0..<count { items.append(try readScalar(kind)) }
-            return .list(items)
-        }
         for _ in 0..<count {
             items.append(try readValue(element, depth: depth + 1))
         }
         return .list(items)
+    }
+
+    mutating func readF32s(_ count: Int) throws -> [Float] {
+        if hostIsLittleEndian { return try readContiguous(count) }
+        var out: [Float] = []
+        out.reserveCapacity(count)
+        for _ in 0..<count { out.append(Float(bitPattern: try u32())) }
+        return out
+    }
+
+    mutating func readF64s(_ count: Int) throws -> [Double] {
+        if hostIsLittleEndian { return try readContiguous(count) }
+        var out: [Double] = []
+        out.reserveCapacity(count)
+        for _ in 0..<count { out.append(Double(bitPattern: try u64())) }
+        return out
+    }
+
+    mutating func readI32s(_ count: Int) throws -> [Int32] {
+        if hostIsLittleEndian { return try readContiguous(count) }
+        var out: [Int32] = []
+        out.reserveCapacity(count)
+        for _ in 0..<count { out.append(Int32(bitPattern: try u32())) }
+        return out
+    }
+
+    mutating func readI64s(_ count: Int) throws -> [Int64] {
+        if hostIsLittleEndian { return try readContiguous(count) }
+        var out: [Int64] = []
+        out.reserveCapacity(count)
+        for _ in 0..<count { out.append(Int64(bitPattern: try u64())) }
+        return out
+    }
+
+    private mutating func readContiguous<T>(_ count: Int) throws -> [T] {
+        let bytes = count * MemoryLayout<T>.stride
+        let start = index
+        let out = [T](unsafeUninitializedCapacity: count) { buffer, initialized in
+            if bytes > 0, let dest = buffer.baseAddress {
+                buf.withUnsafeBytes { raw in
+                    guard let src = raw.baseAddress else { return }
+                    UnsafeMutableRawPointer(dest).copyMemory(from: src.advanced(by: start), byteCount: bytes)
+                }
+            }
+            initialized = count
+        }
+        index = start + bytes
+        return out
     }
 
     mutating func readDict(_ inner: Schema, depth: Int) throws -> Value {

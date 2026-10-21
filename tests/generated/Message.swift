@@ -169,6 +169,22 @@ private func f32Value(_ value: Value?) throws -> Float {
     guard case .f32(let item)? = value else { throw KilnError(.TYPE) }
     return item
 }
+private func f32List(_ value: Value?) throws -> [Float] {
+    if case .f32s(let items)? = value { return items }
+    return try listValue(value) { try f32Value($0) }
+}
+private func f64List(_ value: Value?) throws -> [Double] {
+    if case .f64s(let items)? = value { return items }
+    return try listValue(value) { try f64Value($0) }
+}
+private func i32List(_ value: Value?) throws -> [Int32] {
+    if case .i32s(let items)? = value { return items }
+    return try listValue(value) { try int32Value($0) }
+}
+private func i64List(_ value: Value?) throws -> [Int64] {
+    if case .i64s(let items)? = value { return items }
+    return try listValue(value) { try int64Value($0) }
+}
 private func f64Value(_ value: Value?) throws -> Double {
     guard case .f64(let item)? = value else { throw KilnError(.TYPE) }
     return item

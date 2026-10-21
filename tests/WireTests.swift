@@ -78,6 +78,23 @@ final class WireTests: XCTestCase {
     }
 }
 
+private func boxedList(_ value: Value) -> [Value]? {
+    switch value {
+    case .list(let items):
+        return items
+    case .f32s(let raw):
+        return raw.map { .f32($0) }
+    case .f64s(let raw):
+        return raw.map { .f64($0) }
+    case .i32s(let raw):
+        return raw.map { .int(Int64($0)) }
+    case .i64s(let raw):
+        return raw.map { .int($0) }
+    default:
+        return nil
+    }
+}
+
 func matches(_ value: Value, _ want: JSON) -> Bool {
     switch want {
     case .object:
@@ -88,7 +105,7 @@ func matches(_ value: Value, _ want: JSON) -> Bool {
         }
         return true
     case .array(let items):
-        guard case .list(let got) = value, got.count == items.count else { return false }
+        guard let got = boxedList(value), got.count == items.count else { return false }
         return zip(got, items).allSatisfy(matches)
     case .string(let text):
         if case .string(let got) = value { return got == text }

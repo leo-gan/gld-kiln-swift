@@ -7,6 +7,11 @@ public enum Value: Sendable, Equatable {
     case string(String)
     case bytes([UInt8])
     case list([Value])
+    /// Contiguous numeric lists. The wire is one little-endian copy of these bits.
+    case f32s([Float])
+    case f64s([Double])
+    case i32s([Int32])
+    case i64s([Int64])
     case object([String: Value])
     case null
     case tensors(TensorDirectory)
@@ -29,6 +34,34 @@ public enum Value: Sendable, Equatable {
             return lhs == rhs
         case (.list(let lhs), .list(let rhs)):
             return lhs == rhs
+        case (.f32s(let lhs), .f32s(let rhs)):
+            return sameBits(lhs, rhs)
+        case (.f64s(let lhs), .f64s(let rhs)):
+            return sameBits(lhs, rhs)
+        case (.i32s(let lhs), .i32s(let rhs)):
+            return lhs == rhs
+        case (.i64s(let lhs), .i64s(let rhs)):
+            return lhs == rhs
+        case (.f32s(let raw), .list(let items)), (.list(let items), .f32s(let raw)):
+            return raw.count == items.count && zip(raw, items).allSatisfy { number, item in
+                guard case .f32(let value) = item else { return false }
+                return value.bitPattern == number.bitPattern
+            }
+        case (.f64s(let raw), .list(let items)), (.list(let items), .f64s(let raw)):
+            return raw.count == items.count && zip(raw, items).allSatisfy { number, item in
+                guard case .f64(let value) = item else { return false }
+                return value.bitPattern == number.bitPattern
+            }
+        case (.i32s(let raw), .list(let items)), (.list(let items), .i32s(let raw)):
+            return raw.count == items.count && zip(raw, items).allSatisfy { number, item in
+                guard case .int(let value) = item else { return false }
+                return value == Int64(number)
+            }
+        case (.i64s(let raw), .list(let items)), (.list(let items), .i64s(let raw)):
+            return raw.count == items.count && zip(raw, items).allSatisfy { number, item in
+                guard case .int(let value) = item else { return false }
+                return value == number
+            }
         case (.object(let lhs), .object(let rhs)):
             return lhs == rhs
         case (.null, .null):
@@ -39,6 +72,14 @@ public enum Value: Sendable, Equatable {
             return false
         }
     }
+}
+
+private func sameBits(_ lhs: [Float], _ rhs: [Float]) -> Bool {
+    lhs.count == rhs.count && zip(lhs, rhs).allSatisfy { $0.bitPattern == $1.bitPattern }
+}
+
+private func sameBits(_ lhs: [Double], _ rhs: [Double]) -> Bool {
+    lhs.count == rhs.count && zip(lhs, rhs).allSatisfy { $0.bitPattern == $1.bitPattern }
 }
 
 func fitSigned(_ value: Value, bits: Int) throws -> Int64 {
