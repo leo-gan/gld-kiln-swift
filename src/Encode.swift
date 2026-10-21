@@ -76,6 +76,26 @@ extension ByteSink {
             try writeCounted(raw, cap: cap)
             return
         }
+        if case .scalar(.f32) = element, case .f32s(let nums) = value {
+            try writeF32s(nums, cap: cap)
+            return
+        }
+        if case .scalar(.f64) = element, case .f64s(let nums) = value {
+            try writeF64s(nums, cap: cap)
+            return
+        }
+        if case .scalar(.i32) = element, case .i32s(let nums) = value {
+            try writeI32s(nums, cap: cap)
+            return
+        }
+        if case .scalar(.i64) = element, case .i64s(let nums) = value {
+            try writeI64s(nums, cap: cap)
+            return
+        }
+        if case .scalar(.int) = element, case .i64s(let nums) = value {
+            try writeI64s(nums, cap: cap)
+            return
+        }
         guard case .list(let items) = value else { throw KilnError(.TYPE) }
         try fitCount(items.count, each: minSize(element), unread: .max, cap: cap)
         guard items.count <= Int(UInt32.max) else { throw KilnError(.LIMIT) }
@@ -99,6 +119,48 @@ extension ByteSink {
             try writeText(key, cap: cap)
             try writeValue(inner, item, cap: cap, depth: depth + 1)
         }
+    }
+
+    mutating func writeF32s(_ values: [Float], cap: Int) throws {
+        try beginPod(values.count, width: 4, cap: cap)
+        if hostIsLittleEndian {
+            writeContiguous(values)
+        } else {
+            for value in values { writeU32(value.bitPattern) }
+        }
+    }
+
+    mutating func writeF64s(_ values: [Double], cap: Int) throws {
+        try beginPod(values.count, width: 8, cap: cap)
+        if hostIsLittleEndian {
+            writeContiguous(values)
+        } else {
+            for value in values { writeU64(value.bitPattern) }
+        }
+    }
+
+    mutating func writeI32s(_ values: [Int32], cap: Int) throws {
+        try beginPod(values.count, width: 4, cap: cap)
+        if hostIsLittleEndian {
+            writeContiguous(values)
+        } else {
+            for value in values { writeU32(UInt32(bitPattern: value)) }
+        }
+    }
+
+    mutating func writeI64s(_ values: [Int64], cap: Int) throws {
+        try beginPod(values.count, width: 8, cap: cap)
+        if hostIsLittleEndian {
+            writeContiguous(values)
+        } else {
+            for value in values { writeU64(UInt64(bitPattern: value)) }
+        }
+    }
+
+    private mutating func beginPod(_ count: Int, width: Int, cap: Int) throws {
+        try fitCount(count, each: width, unread: .max, cap: cap)
+        guard count <= Int(UInt32.max) else { throw KilnError(.LIMIT) }
+        writeU32(UInt32(count))
     }
 
     mutating func writeCounted(_ raw: [UInt8], cap: Int) throws {

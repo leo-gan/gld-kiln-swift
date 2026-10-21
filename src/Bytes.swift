@@ -1,3 +1,5 @@
+let hostIsLittleEndian = UInt16(1).littleEndian == 1
+
 struct ByteSink {
     var storage: [UInt8]
     var end: Int
@@ -46,6 +48,18 @@ struct ByteSink {
             }
         }
         end += 8
+    }
+
+    mutating func writeContiguous<T>(_ values: [T]) {
+        let bytes = values.count * MemoryLayout<T>.stride
+        if bytes == 0 { return }
+        ensure(bytes)
+        values.withUnsafeBytes { src in
+            storage.withUnsafeMutableBytes { dst in
+                dst.baseAddress!.advanced(by: end).copyMemory(from: src.baseAddress!, byteCount: bytes)
+            }
+        }
+        end += bytes
     }
 
     mutating func writeBytes(_ bytes: [UInt8]) {

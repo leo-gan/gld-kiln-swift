@@ -46,3 +46,33 @@ print("struct_bytes", encoded.count)
 print("tensor_encode_ns", tensorEncodeNs)
 print("tensor_decode_ns", tensorDecodeNs)
 print("tensor_bytes", block.count)
+
+let million = 1 << 20
+var floats = [Float](repeating: 1.25, count: million)
+floats[0] = Float(bitPattern: 0x8000_0000)
+floats[1] = Float(bitPattern: 0x7FC0_0000)
+let f32Schema = Schema.list(.f32)
+let f32Value = Value.f32s(floats)
+let f32Writer = Writer(capacity: 4 + million * 4)
+let f32Wire = Array(try f32Writer.encode(f32Schema, f32Value))
+var bestEnc = Int.max
+var bestDec = Int.max
+for _ in 0..<3 {
+    _ = try f32Writer.encode(f32Schema, f32Value)
+    _ = try decode(f32Schema, f32Wire)
+}
+for _ in 0..<8 {
+    let e0 = DispatchTime.now().uptimeNanoseconds
+    _ = try f32Writer.encode(f32Schema, f32Value)
+    let e1 = DispatchTime.now().uptimeNanoseconds
+    let back = try decode(f32Schema, f32Wire)
+    let e2 = DispatchTime.now().uptimeNanoseconds
+    guard case .f32s(let got) = back else { fatalError("f32s") }
+    if got[0].bitPattern != 0x8000_0000 || got[1].bitPattern != 0x7FC0_0000 { fatalError("bits") }
+    bestEnc = min(bestEnc, Int(e1 - e0))
+    bestDec = min(bestDec, Int(e2 - e1))
+}
+print("f32_list_n", million)
+print("f32_list_encode_ns", bestEnc)
+print("f32_list_decode_ns", bestDec)
+print("f32_list_bytes", f32Wire.count)

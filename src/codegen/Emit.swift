@@ -127,6 +127,14 @@ private final class SwiftEmitter {
             fresh += 1
             let name = "v\(fresh)"
             return "\(access).map { \(name) in \(valueExpr(inner, name)) } ?? .null"
+        case .list(.scalar(.f32)):
+            return ".f32s(\(access))"
+        case .list(.scalar(.f64)):
+            return ".f64s(\(access))"
+        case .list(.scalar(.i32)):
+            return ".i32s(\(access))"
+        case .list(.scalar(.i64)), .list(.scalar(.int)):
+            return ".i64s(\(access))"
         case .list(let inner):
             fresh += 1
             let name = "v\(fresh)"
@@ -162,6 +170,14 @@ private final class SwiftEmitter {
             return "try optionalValue(\(access)) { \(name) in \(readExpr(inner, name)) }"
         case .list(.scalar(.u8)):
             return "try byteList(\(access))"
+        case .list(.scalar(.f32)):
+            return "try f32List(\(access))"
+        case .list(.scalar(.f64)):
+            return "try f64List(\(access))"
+        case .list(.scalar(.i32)):
+            return "try i32List(\(access))"
+        case .list(.scalar(.i64)), .list(.scalar(.int)):
+            return "try i64List(\(access))"
         case .list(let inner):
             fresh += 1
             let name = "v\(fresh)"
