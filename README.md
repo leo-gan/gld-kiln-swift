@@ -1,5 +1,7 @@
 # gld-kiln-swift
 
+[Serialization](https://leo-gan.github.io/serialization/) is the hub for the theory, the history, and the benchmarks.
+
 A from-scratch Kiln codec for Swift. The runtime and the code generator are Swift. They do not wrap, link, or vendor another language's Kiln library.
 
 `testdata/reference/kiln_ref.py` is a test oracle for Frozen values. It is not used at run time.
