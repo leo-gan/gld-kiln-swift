@@ -118,6 +118,12 @@ func allZero(_ bytes: ArraySlice<UInt8>) -> Bool {
 }
 
 func utf8OK(_ bytes: some Collection<UInt8>) -> Bool {
+    if let ok = bytes.withContiguousStorageIfAvailable({ buf -> Bool in
+        guard let base = buf.baseAddress else { return true }
+        return utf8ValidBuffer(base, count: buf.count)
+    }) {
+        return ok
+    }
     for byte in bytes where byte >= 0x80 {
         return utf8OKFull(bytes)
     }
